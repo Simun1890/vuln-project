@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <title>Projekt — JMBAG 0036538154 (SQLi & CSRF)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --success:#10b981;
+      --danger:#ef4444;
+      --border:#e6e9ef;
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin:0; background:var(--bg); color:#0f172a;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    .container{max-width:980px;margin:28px auto;padding:0 16px;}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:4px 0 0;color:var(--muted);font-size:14px}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 6px 18px rgba(11,20,40,0.03)}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
+    @media (max-width:880px){ .grid{grid-template-columns:1fr} }
+    label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#0b1220}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+    input[type=text], input[type=password]{padding:10px;border-radius:8px;border:1px solid var(--border);min-width:160px}
+    .btn{background:var(--accent);color:white;padding:10px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+    .note{font-size:13px;color:var(--muted);background:#fbfdff;padding:10px;border-radius:8px;border:1px dashed var(--border)}
+    .result{margin-top:12px;padding:12px;border-radius:8px;background:#fff;border:1px solid var(--border)}
+    pre{background:#0b1220;color:#e6eef8;padding:12px;border-radius:8px;overflow:auto}
+    table{width:100%;border-collapse:collapse}
+    th, td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:left;font-size:13px}
+    th{background:#fbfdff;color:var(--muted);font-weight:600}
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:13px;color:var(--muted)}
+    .top-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    .sticky{position:sticky;top:12px;z-index:50}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Projekt</h1>
+        <p class="lead"><strong>SQL Injection (tautologija)</strong> i <strong>CSRF</strong>.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main>
+        <div class="card">
+          <h3>SQL Injection (tautologija) — simulacija</h3>
+          <p class="note">Unesite poruku i PIN. Ako je ranjivost uključena i poruka sadrži <code>OR 1=1</code>, aplikacija simulira vraćanje svih zapisa i može ažurirati PIN-ove.</p>
+          <div class="controls" style="margin-top:12px">
+            <label class="field" style="flex:1">Poruka<input id="sql-message" type="text" value="admin"></label>
+            <label class="field">PIN<input id="sql-pin" type="password" value="1234" autocomplete="new-password"></label>
+          </div>
+          <div class="controls" style="margin-top:10px">
+            <button id="run-sql" class="btn">Pokreni SQL</button>
+            <button id="sample-sql" class="btn ghost">'OR 1=1 #</button>
+          </div>
+          <div id="sql-out" class="result small"></div>
+        </div>
+
+        <div class="card">
+          <h3>CSRF — simulacija</h3>
+          <p class="note">Legitimizirani zahtjev ima CSRF token. Simulirani napad šalje zahtjev bez tokena. Ako je ranjivost uključena, napad uspijeva.</p>
+          <div class="controls" style="margin-top:12px">
+            <label class="field" style="flex:1">Email<input id="csrf-email" type="text" value="napadac@maliciozno.hr"></label>
+            <label class="field">Token<input id="csrf-token" type="text" value="securetoken123"></label>
+          </div>
+          <div class="controls" style="margin-top:10px">
+            <button id="csrf-legit" class="btn">Legit zahtjev (s tokenom)</button>
+            <button id="csrf-attack" class="btn ghost">Napad (bez tokena)</button>
+          </div>
+          <div id="csrf-out" class="result small"></div>
+        </div>
+      </main>
+
+      <aside>
+        <div class="card">
+          <h4>Toggle settings</h4>
+          <p class="small">Upalite ili ugasite simulacije (sql / csrf).</p>
+          <div id="flags" class="controls" style="margin-top:8px;flex-direction:column;align-items:flex-start"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h4>Logovi</h4>
+          <pre id="logs">{}</pre>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+async function api(path, method='GET', body=null){
+  const opts = { method, headers:{} };
+  if (body) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+  const res = await fetch('/api'+path, opts);
+  return res.json();
+}
+
+async function refreshFlags(){
+  const f = await api('/flags');
+  const container = document.getElementById('flags');
+  container.innerHTML = '';
+  ['sql_enabled','csrf_enabled'].forEach(k=>{
+    const lbl = document.createElement('label');
+    lbl.style.display='flex'; lbl.style.alignItems='center'; lbl.style.gap='8px';
+    const chk = document.createElement('input');
+    chk.type='checkbox'; chk.checked = f[k]; chk.addEventListener('change', ()=> api('/flags','POST',{flag:k, value:chk.checked}).then(refreshFlags));
+    lbl.appendChild(chk);
+    lbl.appendChild(document.createTextNode(' ' + k));
+    container.appendChild(lbl);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  refreshFlags(); refreshLogs();
+
+  // SQL handlers
+  document.getElementById('run-sql').addEventListener('click', async ()=>{
+    const msg=document.getElementById('sql-message').value; const pin=document.getElementById('sql-pin').value;
+    const r = await api('/run-sql','POST',{message:msg,pin});
+    const out = document.getElementById('sql-out');
+    out.innerHTML = '<div style="font-weight:600;margin-bottom:6px">'+r.note+'</div>';
+    if (r.entry && r.entry.matches && r.entry.matches.length){
+      let html = '<table><tr><th>#</th><th>msg</th><th>pin</th><th>owner</th></tr>';
+      r.entry.matches.forEach(m=> html += `<tr><td>${m.id}</td><td>${m.msg}</td><td>${m.pin}</td><td>${m.owner}</td></tr>`);
+      html += '</table>';
+      out.innerHTML += html;
+    } else {
+      out.innerHTML += '<div class="small muted">Nema rezultata</div>';
+    }
+    refreshLogs();
+  });
+  document.getElementById('sample-sql').addEventListener('click', ()=> document.getElementById('sql-message').value = "'OR 1=1 #'");
+
+  // CSRF handlers
+  document.getElementById('csrf-legit').addEventListener('click', async ()=>{
+    const email=document.getElementById('csrf-email').value;
+    const token=document.getElementById('csrf-token').value;
+    const r = await api('/run-csrf','POST',{email,token,mode:'legit'});
+    const out = document.getElementById('csrf-out');
+    out.innerHTML = '<div style="font-weight:600;margin-bottom:6px">'+r.note+'</div>';
+    out.innerHTML += '<div class="small">Trenutni email: ' + r.entry.new_email + '</div>';
+    refreshLogs();
+  });
+  document.getElementById('csrf-attack').addEventListener('click', async ()=>{
+    const email=document.getElementById('csrf-email').value;
+    const r = await api('/run-csrf','POST',{email,token:null,mode:'attack'});
+    const out = document.getElementById('csrf-out');
+    out.innerHTML = '<div style="font-weight:600;margin-bottom:6px">'+r.note+'</div>';
+    out.innerHTML += '<div class="small">Trenutni email: ' + r.entry.new_email + '</div>';
+    refreshLogs();
+  });
+
+  // top-toolbar mapping to underlying buttons
+  document.getElementById('top-run-sql').addEventListener('click', ()=> document.getElementById('run-sql').click());
+  document.getElementById('top-sample-sql').addEventListener('click', ()=> document.getElementById('sample-sql').click());
+  document.getElementById('top-csrf-legit').addEventListener('click', ()=> document.getElementById('csrf-legit').click());
+  document.getElementById('top-csrf-attack').addEventListener('click', ()=> document.getElementById('csrf-attack').click());
+
+  async function refreshLogs(){
+    const j = await api('/logs');
+    document.getElementById('logs').innerText = JSON.stringify(j, null, 2);
+  }
+  window.refreshLogs = refreshLogs;
+});
+</script>
+</body>
+</html>

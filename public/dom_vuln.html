@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><title>DOM XSS Vulnerable</title></head>
+<body>
+<h2>DOM-based demo (vulnerable)</h2>
+<div id="greet">Hello </div>
+<script>
+  // vulnerable: writes URL param 'name' directly into DOM without sanitization
+  const name = new URL(location.href).searchParams.get('name') || 'guest';
+  document.getElementById('greet').innerHTML += name;
+</script>
+<p>Try adding ?name=&lt;script&gt;alert(document.cookie)&lt;/script&gt;</p>
+</body></html>

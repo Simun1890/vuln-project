@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><title>DOM XSS Safe</title></head>
+<body>
+<h2>DOM-based demo (safe)</h2>
+<div id="greet">Hello </div>
+<script>
+  const name = new URL(location.href).searchParams.get('name') || 'guest';
+  // safe: escape before inserting
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  document.getElementById('greet').textContent += escapeHtml(name);
+</script>
+<p>Try adding ?name=&lt;script&gt;alert(document.cookie)&lt;/script&gt; (it will be escaped)</p>
+</body></html>
