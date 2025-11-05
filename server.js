@@ -5,14 +5,12 @@ const app = express();
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Flags and logs
 const flags = {
   sql_enabled: true,
   csrf_enabled: false
 };
 const logs = { sql: [], csrf: [] };
 
-// simple DB
 const fakeDB = [
   { id:1, msg: 'admin', pin: '1234', owner: 'admin' },
   { id:2, msg: 'hello', pin: '1111', owner: 'user' }
@@ -32,7 +30,7 @@ app.post('/api/flags', (req,res) => {
   res.status(400).json({ ok:false, msg:'Unknown flag' });
 });
 
-// SQL endpoint
+
 app.post('/api/run-sql', (req, res) => {
     const { message, pin } = req.body || {};
     const enabled = flags.sql_enabled;
@@ -42,20 +40,17 @@ app.post('/api/run-sql', (req, res) => {
     if (enabled) {
         const lowered = (message || '').toLowerCase();
 
-        // Tautologija → "eksfiltracija" (= vraćamo svi zapisi) + opcionalno ažuriranje fakeDB
         if (lowered.includes('or 1=1')) {
-            // Ako je attacker proslijedio PIN, simuliramo da napadač može izmijeniti zapise:
             if (pin) {
-                // Primjer: zamijeni PIN za sve zapise (možeš prilagoditi logiku ako želiš promijeniti samo određeni zapis)
+
                 for (let i = 0; i < fakeDB.length; i++) {
                     fakeDB[i].pin = pin;
                 }
             }
 
-            matches = fakeDB.slice(); // vraćamo ažurirane zapise
+            matches = fakeDB.slice(); 
             note = "SIMULACIJA: Detektiran SQL tautologija; vraćam sve zapise (i ažurirao PIN ako je poslan).";
         } else {
-            // Normalna pretraga (bez eksploata)
             matches = fakeDB.filter(r => r.msg === (message || '') && r.pin === (pin || ''));
             note = "SIMULACIJA: Normalna pretraga (bez eksploata).";
         }
@@ -66,7 +61,6 @@ app.post('/api/run-sql', (req, res) => {
     res.json({ ok: true, entry, note });
 });
 
-// CSRF endpoint
 app.post('/api/run-csrf', (req,res) => {
   const { email, token, mode } = req.body || {};
   const enabled = flags.csrf_enabled;

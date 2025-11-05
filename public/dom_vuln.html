@@ -3,7 +3,6 @@
 <h2>DOM-based demo (vulnerable)</h2>
 <div id="greet">Hello </div>
 <script>
-  // vulnerable: writes URL param 'name' directly into DOM without sanitization
   const name = new URL(location.href).searchParams.get('name') || 'guest';
   document.getElementById('greet').innerHTML += name;
 </script>

@@ -1,4 +1,3 @@
-// Frontend logic (SQL + CSRF)
 async function api(path, method='GET', body=null){
   const opts = { method, headers: {} };
   if (body) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
@@ -18,11 +17,9 @@ async function setFlag(flag, value){
 }
 
 document.addEventListener('DOMContentLoaded', ()=> {
-  // toggles
   document.getElementById('toggle-sql').addEventListener('change', (e)=> setFlag('sql_enabled', e.target.checked));
   document.getElementById('toggle-csrf').addEventListener('change', (e)=> setFlag('csrf_enabled', e.target.checked));
 
-  // SQL handlers
   document.getElementById('save-sql').addEventListener('click', async ()=>{
     const msg = document.getElementById('sql-message').value || '';
     const pin = document.getElementById('sql-pin').value || '';
@@ -43,7 +40,6 @@ document.addEventListener('DOMContentLoaded', ()=> {
     el.focus();
   });
 
-  // CSRF handlers
   document.getElementById('submit-legit').addEventListener('click', async ()=>{
     const email = document.getElementById('legit-email').value || '';
     const token = document.getElementById('csrf-token').value || '';
@@ -61,7 +57,6 @@ document.addEventListener('DOMContentLoaded', ()=> {
 
   document.getElementById('submit-attack').addEventListener('click', async ()=>{
     const email = document.getElementById('attack-email').value || '';
-    // attack has no token to simulate cross-site request
     const res = await api('/run-csrf', 'POST', { email, token: null, mode: 'attack' });
     const div = document.getElementById('csrf-result');
     div.innerHTML = '<div style="font-weight:600;margin-bottom:6px">'+res.note+'</div>';
@@ -76,7 +71,6 @@ document.addEventListener('DOMContentLoaded', ()=> {
 
   document.getElementById('refresh-logs').addEventListener('click', refreshLogs);
 
-  // initial load
   refreshFlags();
   refreshLogs();
 });

@@ -127,7 +127,6 @@ async function refreshFlags(){
 document.addEventListener('DOMContentLoaded', ()=>{
   refreshFlags(); refreshLogs();
 
-  // SQL handlers
   document.getElementById('run-sql').addEventListener('click', async ()=>{
     const msg=document.getElementById('sql-message').value; const pin=document.getElementById('sql-pin').value;
     const r = await api('/run-sql','POST',{message:msg,pin});
@@ -145,7 +144,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   document.getElementById('sample-sql').addEventListener('click', ()=> document.getElementById('sql-message').value = "'OR 1=1 #'");
 
-  // CSRF handlers
   document.getElementById('csrf-legit').addEventListener('click', async ()=>{
     const email=document.getElementById('csrf-email').value;
     const token=document.getElementById('csrf-token').value;
@@ -164,7 +162,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     refreshLogs();
   });
 
-  // top-toolbar mapping to underlying buttons
   document.getElementById('top-run-sql').addEventListener('click', ()=> document.getElementById('run-sql').click());
   document.getElementById('top-sample-sql').addEventListener('click', ()=> document.getElementById('sample-sql').click());
   document.getElementById('top-csrf-legit').addEventListener('click', ()=> document.getElementById('csrf-legit').click());

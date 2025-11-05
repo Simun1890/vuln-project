@@ -4,7 +4,6 @@
 <div id="greet">Hello </div>
 <script>
   const name = new URL(location.href).searchParams.get('name') || 'guest';
-  // safe: escape before inserting
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   document.getElementById('greet').textContent += escapeHtml(name);
 </script>

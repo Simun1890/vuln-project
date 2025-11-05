@@ -1,6 +1,5 @@
 README - JMBAG project (SQLi + CSRF)
 
-JMBAG: 0036538154
 Implemented (simulated):
 - SQL Injection (tautology)
 - CSRF (Cross-Site Request Forgery)
